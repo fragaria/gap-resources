@@ -1,0 +1,2 @@
+#!bin/gip
+-e git+https://github.com/czervenka/gap.git#egg=gap
