@@ -36,9 +36,11 @@ class BaseResourceHandler(webapp2.RequestHandler):
         self.response.write(json.dumps(ret))
 
     def post(self, *args, **kwargs):
-        if len(args) > 0 and args[0] != '':
+        if len(args) == 0 or args[0] == '':
             self.response.set_status(400)
             return
+
+        id = args[0]
 
         try:
             data = json.loads(self.request.body)
@@ -47,12 +49,15 @@ class BaseResourceHandler(webapp2.RequestHandler):
             self.response.write(unicode(e))
             return
 
-        id = data.pop('id', None)
-
-        if id is not None:
-            ret = self.resource_class.update(id, data)
-        else:
-            ret = self.resource_class.create(data)
+        try:
+            if id is not None:
+                ret = self.resource_class.update(id, data)
+            else:
+                ret = self.resource_class.create(data)
+        except self.resource_class.InvalidValue, e:
+            self.response.set_status(400)
+            self.response.write(unicode(e))
+            return
 
         self.response.write(json.dumps(ret))
 

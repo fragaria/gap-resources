@@ -2,7 +2,7 @@ from datetime import date, datetime
 import time
 from functools import partial
 
-from google.appengine.api.datastore_errors import BadFilterError
+from google.appengine.api.datastore_errors import BadFilterError, BadValueError
 
 __all__ = ['Resource', 'resource_for_model']
 
@@ -39,6 +39,9 @@ class Resource(object):
     class InvalidFilter(Exception):
         pass
 
+    class InvalidValue(Exception):
+        pass
+
     def __init__(self, instance):
         self.instance = instance
 
@@ -70,8 +73,13 @@ class Resource(object):
         return ret
 
     @classmethod
-    def get(cls, key):
-        instance = cls.model.get_by_id(key)
+    def get(cls, id):
+        try:
+            id = int(id)
+        except ValueError:
+            pass
+
+        instance = cls.model.get_by_id(id)
 
         if instance is not None:
             return cls(instance).as_dict()
@@ -110,12 +118,20 @@ class Resource(object):
         return cls.list(query=query)
 
     @classmethod
-    def update(cls, key, values):
-        instance = cls.model.get_by_id(key)
+    def update(cls, id, values):
+        try:
+            id = int(id)
+        except ValueError:
+            pass
+
+        instance = cls.model.get_by_id(id)
 
         if instance is not None:
-            for attr, val in values:
-                setattr(instance, val)
+            for attr, val in values.items():
+                try:
+                    setattr(instance, attr, val)
+                except BadValueError, e:
+                    raise cls.InvalidValue(e)
 
             instance.put()
             return cls(instance).as_dict()
@@ -129,11 +145,16 @@ class Resource(object):
         return cls(instance).as_dict()
 
     @classmethod
-    def delete(cls, key):
-        instance = cls.model.get_by_id(key)
+    def delete(cls, id):
+        try:
+            id = int(id)
+        except ValueError:
+            pass
+
+        instance = cls.model.get_by_id(id)
 
         if instance is not None:
-            key.delete()
+            instance.key.delete()
             return True
 
         return False
