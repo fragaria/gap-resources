@@ -39,6 +39,7 @@ val_to_str = partial(_val, {
 
 class Resource(object):
     model = None
+    _span_keys = None
 
     class InvalidFilter(Exception):
         pass
@@ -65,12 +66,34 @@ class Resource(object):
             ret[prop_name] = prop_type.__class__.__name__.replace('Property', '').lower()
         return ret
 
-    def as_dict(self, include_class_info=True):
+    def as_dict(self, include_class_info=True, span_keys=None):
+        from register import register
+
         ret = {}
+        keys_to_span = span_keys or self._span_keys
 
         for prop in self:
-            ret[prop] = val_to_str(self.model._properties[prop],
-                                   getattr(self.instance, prop))
+            p = self.model._properties[prop]
+
+            # If this property should be spanned try to.
+            if keys_to_span and prop in keys_to_span and isinstance(p, ndb.KeyProperty):
+                key = getattr(self.instance, prop)
+                related = key.get()
+
+                # Use custom resource class if registered, fallback to defaults
+                # if not.
+                if register.is_registered(related.__class__):
+                    ResourceHandler = register.get(related.__class__)[1]
+
+                    if ResourceHandler is not None:
+                        ResourceClass = ResourceHandler.resource_class
+                    else:
+                        ResourceClass = resource_for_model(related.__class__)
+
+                    ret[prop] = ResourceClass(related).as_dict(include_class_info=include_class_info)
+                    continue
+
+            ret[prop] = val_to_str(p, getattr(self.instance, prop))
 
         ret['id'] = self.instance.key.id()
 
@@ -80,7 +103,7 @@ class Resource(object):
         return ret
 
     @classmethod
-    def get(cls, id):
+    def get(cls, id, span_keys=None):
         try:
             id = int(id)
         except ValueError:
@@ -92,12 +115,12 @@ class Resource(object):
             instance = None
 
         if instance is not None:
-            return cls(instance).as_dict()
+            return cls(instance).as_dict(span_keys=span_keys)
 
         return None
 
     @classmethod
-    def list(cls, ordering=None, query=None):
+    def list(cls, ordering=None, query=None, span_keys=None):
         def _list(ordering, query):
             if query is None:
                 query = cls.model.query()
@@ -127,7 +150,8 @@ class Resource(object):
             for row in query:
                 yield cls(row)
 
-        rows = [row.as_dict(include_class_info=False) for row in _list(ordering, query)]
+        rows = [row.as_dict(include_class_info=False, span_keys=span_keys)
+                for row in _list(ordering, query)]
 
         return {
             'objects': rows,
@@ -136,7 +160,7 @@ class Resource(object):
         }
 
     @classmethod
-    def query(cls, ordering=None, **filters):
+    def query(cls, ordering=None, span_keys=None, **filters):
         query = cls.model.query()
 
         for prop, val in filters.items():
@@ -146,10 +170,10 @@ class Resource(object):
             except (BadFilterError, ValueError, KeyError), e:
                 raise cls.InvalidFilter(unicode(e))
 
-        return cls.list(ordering=ordering, query=query)
+        return cls.list(ordering=ordering, query=query, span_keys=span_keys)
 
     @classmethod
-    def update(cls, id, values):
+    def update(cls, id, values, span_keys=None):
         try:
             id = int(id)
         except ValueError:
@@ -168,15 +192,15 @@ class Resource(object):
                     raise cls.InvalidValue(e)
 
             instance.put()
-            return cls(instance).as_dict()
+            return cls(instance).as_dict(span_keys=span_keys)
 
         return None
 
     @classmethod
-    def create(cls, values):
+    def create(cls, values, span_keys=None):
         instance = cls.model(**values)
         instance.put()
-        return cls(instance).as_dict()
+        return cls(instance).as_dict(span_keys=span_keys)
 
     @classmethod
     def delete(cls, id):

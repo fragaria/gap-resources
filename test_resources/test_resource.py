@@ -5,6 +5,7 @@ import time
 
 from google.appengine.ext import ndb, testbed
 
+from resources import register
 from resources.resource import resource_for_model
 
 
@@ -55,8 +56,14 @@ class TestResource(TestCase):
         for k in TestModel.query().fetch(keys_only=True):
             k.delete()
 
+        register.register(TestModel)
+        register.register(TestKeyModel)
+
     def tearDown(self):
         self.testbed.deactivate()
+
+        register.unregister(TestModel)
+        register.unregister(TestKeyModel)
 
     def test_as_dict(self):
         now = datetime.now()
@@ -194,7 +201,7 @@ class TestResource(TestCase):
         # Cannot query on uknown
         self.assertRaises(Resource.InvalidOrderingProperty, lambda: Resource.query(ordering='asdasdad'))
 
-    def test_key_span(self):
+    def test_key_nospan(self):
         inst = _create_instance(0)
         kinst = TestKeyModel(keyProperty=inst.key)
         kinst.put()
@@ -202,5 +209,18 @@ class TestResource(TestCase):
         self.assertEqual(KeyResource(kinst).as_dict(), {
             'model': 'TestKeyModel',
             'keyProperty': {'id': inst.key.id(), 'model': 'TestModel'},
+            'id': kinst.key.id()
+        })
+
+    def test_key_span(self):
+        self.maxDiff = None
+
+        inst = _create_instance(0)
+        kinst = TestKeyModel(keyProperty=inst.key)
+        kinst.put()
+
+        self.assertEqual(KeyResource(kinst).as_dict(span_keys=['keyProperty']), {
+            'model': 'TestKeyModel',
+            'keyProperty': Resource(inst).as_dict(),
             'id': kinst.key.id()
         })

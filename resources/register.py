@@ -38,5 +38,10 @@ class ModelRegistry(object):
     def models(self):
         return [m[0] for m in self._models]
 
+    def get(self, cls):
+        for m, h in self._models:
+            if cls == m:
+                return m, h
+
 
 register = ModelRegistry()
