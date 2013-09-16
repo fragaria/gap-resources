@@ -5,6 +5,16 @@ import webapp2
 class BaseResourceHandler(webapp2.RequestHandler):
     resource_class = None
 
+    def _keys_to_span(self):
+        if '_s' in self.request.arguments():
+            return self.request.get('_s').split(',')
+
+        return None
+
+    def _res(self, method, *args, **kwargs):
+        kwargs['span_keys'] = self._keys_to_span()
+        return getattr(self.resource_class, method)(*args, **kwargs)
+
     def get(self, *args, **kwargs):
         action = 'list'
 
@@ -15,29 +25,28 @@ class BaseResourceHandler(webapp2.RequestHandler):
                 action = 'get'
 
         if action == 'describe':
-            ret = self.resource_class.describe()
+            ret = self._res('describe')
         elif action == 'get':
-            ret = self.resource_class.get(args[0])
+            ret = self._res('get', args[0])
             if ret is None:
                 self.response.set_status(404)
                 return
         else:
             if self.request.arguments():
-                filter = dict((a, self.request.get(a)) for a in self.request.arguments())
+                filter = dict((a, self.request.get(a)) for a in self.request.arguments() if a not in ('_o', '_s'))
                 ordering = None
 
-                if '_o' in filter:
-                    ordering = filter['_o'].split(',')
-                    del filter['_o']
+                if '_o' in self.request.arguments():
+                    ordering = self.request.get('_o').split(',')
 
                 try:
-                    ret = self.resource_class.query(ordering=ordering, **filter)
+                    ret = self._res('query', ordering=ordering, **filter)
                 except (self.resource_class.InvalidFilter, self.resource_class.InvalidOrderingProperty), e:
                     self.response.set_status(400)
                     self.response.write(unicode(e))
                     return
             else:
-                ret = self.resource_class.list()
+                ret = self._res('list')
 
         self.response.write(json.dumps(ret))
 
@@ -57,9 +66,9 @@ class BaseResourceHandler(webapp2.RequestHandler):
 
         try:
             if id is not None:
-                ret = self.resource_class.update(id, data)
+                ret = self._res('update', id, data)
             else:
-                ret = self.resource_class.create(data)
+                ret = self._res('create', data)
         except self.resource_class.InvalidValue, e:
             self.response.set_status(400)
             self.response.write(unicode(e))
@@ -72,7 +81,7 @@ class BaseResourceHandler(webapp2.RequestHandler):
             self.response.set_status(400)
             return
 
-        if not self.resource_class.delete(args[0]):
+        if not self._res('delete', args[0]):
             self.response.set_status(404)
 
         return

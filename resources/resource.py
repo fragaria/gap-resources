@@ -203,7 +203,7 @@ class Resource(object):
         return cls(instance).as_dict(span_keys=span_keys)
 
     @classmethod
-    def delete(cls, id):
+    def delete(cls, id, *args, **kwargs):
         try:
             id = int(id)
         except ValueError:
@@ -218,7 +218,7 @@ class Resource(object):
         return False
 
     @classmethod
-    def describe(cls):
+    def describe(cls, *args, **kwargs):
         return {
             'model': cls.model.__name__,
             'fields': cls._model_props(),
