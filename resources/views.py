@@ -24,9 +24,15 @@ class BaseResourceHandler(webapp2.RequestHandler):
         else:
             if self.request.arguments():
                 filter = dict((a, self.request.get(a)) for a in self.request.arguments())
+                ordering = None
+
+                if '_o' in filter:
+                    ordering = filter['_o'].split(',')
+                    del filter['_o']
+
                 try:
-                    ret = self.resource_class.query(**filter)
-                except self.resource_class.InvalidFilter, e:
+                    ret = self.resource_class.query(ordering=ordering, **filter)
+                except (self.resource_class.InvalidFilter, self.resource_class.InvalidOrderingProperty), e:
                     self.response.set_status(400)
                     self.response.write(unicode(e))
                     return
