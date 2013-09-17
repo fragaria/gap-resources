@@ -222,6 +222,7 @@ class Resource(object):
         return {
             'model': cls.model.__name__,
             'fields': cls._model_props(),
+            'description': cls.model.__doc__.strip() if cls.model.__doc__ else ''
         }
 
 

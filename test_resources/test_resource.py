@@ -10,6 +10,7 @@ from resources.resource import resource_for_model
 
 
 class TestModel(ndb.Model):
+    """ TestModel description """
     datetimeProperty = ndb.DateTimeProperty(indexed=True, required=False)
     stringProperty = ndb.StringProperty(required=False)
     integerProperty = ndb.IntegerProperty(required=False, indexed=False)
@@ -124,7 +125,8 @@ class TestResource(TestCase):
                 'stringProperty': 'string',
                 'integerProperty': 'integer',
                 'requiredProperty': 'integer'
-            }
+            },
+            'description': 'TestModel description'
         })
 
     def test_list(self):
