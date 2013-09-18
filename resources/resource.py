@@ -226,5 +226,5 @@ class Resource(object):
         }
 
 
-def resource_for_model(model):
-    return type('%sResource' % model.__name__, (Resource,), {'model': model})
+def resource_for_model(model, base=Resource):
+    return type('%sResource' % model.__name__, (base,), {'model': model})
