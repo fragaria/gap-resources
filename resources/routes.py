@@ -1,6 +1,9 @@
 from register import register
+from discovery import discover_models
 from resource import resource_for_model
 from views import BaseResourceHandler
+
+import config
 
 
 __all__ = ['routes']
@@ -24,5 +27,7 @@ class _LazyRoutes(object):
                     (BaseResourceHandler,),
                     {'resource_class': resource_for_model(cls)})
 
+if hasattr(config, 'RESOURCES_AUTODISCOVER'):
+    discover_models(config.RESOURCES_AUTODISCOVER)
 
 routes = _LazyRoutes()
