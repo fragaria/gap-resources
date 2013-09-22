@@ -1,3 +1,4 @@
+import re
 import json
 import webapp2
 
@@ -87,9 +88,15 @@ class BaseResourceHandler(webapp2.RequestHandler):
         return
 
     @classmethod
+    def slugify(cls):
+        '''converts CamelCase to camel-case'''
+        name = cls.resource_class.model.__name__
+        s1 = re.sub('(.)([A-Z][a-z]+)', r'\1-\2', name)
+        return re.sub('([a-z0-9])([A-Z])', r'\1-\2', s1).lower()
+
+    @classmethod
     def routes(cls):
         return (
-            ('/%s' % cls.resource_class.model.__name__.lower(), cls),
-            ('/%s/([^\/]*)\/?' % cls.resource_class.model.__name__.lower(), cls),
+            ('/%s' % cls.slugify(), cls),
+            ('/%s/([^\/]*)\/?' % cls.slugify(), cls),
         )
-
