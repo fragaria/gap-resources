@@ -17,6 +17,9 @@ class ModelRegistry(object):
     def __repr__(self):
         return '<ModelRegistry: %s>' % ','.join([unicode(m) for m in self.models()])
 
+    def __call__(self, *args, **kwargs):
+        return self.register(*args, **kwargs)
+
     def is_registered(self, cls):
         return cls in self.models()
 
