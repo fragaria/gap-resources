@@ -2,7 +2,7 @@ import re
 import json
 import webapp2
 
-from utils.decorators import as_view
+from gap.utils.decorators import as_view
 
 
 class BaseResourceHandler(webapp2.RequestHandler):
@@ -97,15 +97,24 @@ class BaseResourceHandler(webapp2.RequestHandler):
         return re.sub('([a-z0-9])([A-Z])', r'\1-\2', s1).lower()
 
     @classmethod
+    def uri_for(cls, request):
+        return webapp2.uri_for('model-resource-description-%s' % cls.slugify())
+
+    @classmethod
     def routes(cls):
         return (
-            ('/%s' % cls.slugify(), cls),
-            ('/%s/([^\/]*)\/?' % cls.slugify(), cls),
+            webapp2.Route('/%s' % cls.slugify(), cls, name='model-resource-description-%s' % cls.slugify()),
+            webapp2.Route('/%s/([^\/]*)\/?' % cls.slugify(), cls, name='model-resource-%s' % cls.resource_class.model.__name__.lower()),
         )
+
 
 @as_view
 def model_list(request, response):
     from resources import register
     response.write(json.dumps([
-        {'model': m.__name__, 'resource': m.__name__.lower()} for m in register.models()
+        {
+            'model': model_class.__name__,
+            'full_module': '%s.%s' % (model_class.__module__ ,model_class.__name__),
+            'resource': handler.uri_for(request),
+        } for model_class, handler in register
     ]))
