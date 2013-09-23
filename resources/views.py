@@ -1,6 +1,8 @@
 import json
 import webapp2
 
+from utils.decorators import as_view
+
 
 class BaseResourceHandler(webapp2.RequestHandler):
     resource_class = None
@@ -93,3 +95,11 @@ class BaseResourceHandler(webapp2.RequestHandler):
             ('/%s/([^\/]*)\/?' % cls.resource_class.model.__name__.lower(), cls),
         )
 
+
+
+@as_view
+def model_list(request, response):
+    from resources import register
+    response.write(json.dumps([
+        {'model': m.__name__, 'resource': m.__name__.lower()} for m in register.models()
+    ]))
