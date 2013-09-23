@@ -1,5 +1,8 @@
-INSTALLATION
-============
+gap-resources
+=============
+
+Installation
+------------
 
 1. Install the package by::
 
@@ -34,7 +37,8 @@ Example:::
 
     http://localhost:8080/_my_resources_base_url/
 
-List of interfaces (see `resources/views.py <resources/views.py>`_ for details
+List of interfaces
+==================
 
 ``GET .``
     list of models
@@ -46,4 +50,6 @@ List of interfaces (see `resources/views.py <resources/views.py>`_ for details
     updates existing object (and returns its data)
 ``POST <model-slug>/``
     creates new object (and returns it)
+
+see `resources/views.py <resources/views.py>`_ for details
 
