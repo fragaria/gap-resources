@@ -21,10 +21,10 @@ INSTALLATION
     register(MyModel)
 
 4. Register models for whole package
-    
-    Open src/config.py in your project and add RESOURCES_AUTODISCOVER with list of modules where resources should look for models.
-    
-    Example:::
+
+Open src/config.py in your project and add RESOURCES_AUTODISCOVER with list of modules where resources should look for models.
+
+Example:::
 
         RESOURCES_AUTODISCOVER = [
             'app.myapp.models',
