@@ -13,7 +13,7 @@ Installation
 
     routes = (
         ...
-        include('/_my_resources_base_url', 'lib/resources')
+        include('/_my_resources_base_url', 'resources.routes')
         ...
     )
 
