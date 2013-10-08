@@ -54,11 +54,12 @@ class BaseResourceHandler(webapp2.RequestHandler):
         self.response.write(json.dumps(ret))
 
     def post(self, *args, **kwargs):
-        if len(args) == 0 or args[0] == '':
+        if len(args) == 1 and args[0] == '':
             self.response.set_status(400)
+            self.response.write('Wrong args!')
             return
 
-        id = args[0]
+        id = args[0] if len(args) > 0 else None
 
         try:
             data = json.loads(self.request.body)
