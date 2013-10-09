@@ -233,9 +233,32 @@ class Resource(object):
 
     @classmethod
     def describe(cls, *args, **kwargs):
+        fields = {}
+
+        for prop_name, prop_type in cls._model_props().items():
+            prop = cls.model._properties[prop_name]
+            info = {
+                'type': prop_type,
+                'verbose_name': prop._verbose_name or prop_name,
+                'required': prop._required,
+                'indexed': prop._indexed,
+                'repeated': prop._repeated,
+            }
+
+            if prop._default:
+                info['default'] = prop._default
+
+            if prop._choices:
+                info['choices'] = prop._choices
+
+            if prop._validator:
+                info['validator'] = prop._validator
+
+            fields[prop_name] = info
+
         return {
             'model': cls.model.__name__,
-            'fields': cls._model_props(),
+            'fields': fields,
         }
 
 

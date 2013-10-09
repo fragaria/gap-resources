@@ -11,7 +11,7 @@ from resources.resource import resource_for_model
 
 class TestModel(ndb.Model):
     datetimeProperty = ndb.DateTimeProperty(indexed=True, required=False)
-    stringProperty = ndb.StringProperty(required=False)
+    stringProperty = ndb.StringProperty(required=False, verbose_name=u'My cool stringProperty')
     integerProperty = ndb.IntegerProperty(required=False, indexed=False)
     requiredProperty = ndb.IntegerProperty(required=True, indexed=True)
 
@@ -121,10 +121,10 @@ class TestResource(TestCase):
         self.assertEqual(Resource.describe(), {
             'model': 'TestModel',
             'fields': {
-                'datetimeProperty': 'datetime',
-                'stringProperty': 'string',
-                'integerProperty': 'integer',
-                'requiredProperty': 'integer'
+                'datetimeProperty': {'type': 'datetime', 'verbose_name': 'datetimeProperty', 'required': False, 'indexed': True, 'repeated': False},
+                'stringProperty': {'type': 'string', 'verbose_name': u'My cool stringProperty', 'required': False, 'indexed': True, 'repeated': False},
+                'integerProperty': {'type': 'integer', 'verbose_name': 'integerProperty', 'required': False, 'indexed': False, 'repeated': False},
+                'requiredProperty': {'type': 'integer', 'verbose_name': 'requiredProperty', 'required': True, 'indexed': True, 'repeated': False},
             }
         })
 
