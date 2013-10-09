@@ -1,5 +1,6 @@
 import re
 import json
+from gap.utils.routes import RouteEx
 import webapp2
 
 from gap.utils.decorators import as_view
@@ -23,7 +24,15 @@ class BaseResourceHandler(webapp2.RequestHandler):
         kwargs['span_keys'] = self._keys_to_span()
         return getattr(self.resource_class, method)(*args, **kwargs)
 
-    def get(self, *args, **kwargs):
+    def dispatch(self):
+        res = super(BaseResourceHandler, self).dispatch()
+        self.response.headers['Content-Type'] = 'application/json'
+        return res
+
+    def describe(self):
+        self.response.write(json.dumps(self._res('describe')))
+
+    def get(self, remainder=None, *args, **kwargs):
         action = 'list'
 
         if len(args) != 0:
@@ -31,6 +40,8 @@ class BaseResourceHandler(webapp2.RequestHandler):
                 action = 'describe'
             elif args[0] != '':
                 action = 'get'
+
+        print args, action, remainder
 
         if action == 'describe':
             ret = self._res('describe')
@@ -102,13 +113,14 @@ class BaseResourceHandler(webapp2.RequestHandler):
 
     @classmethod
     def uri_for(cls, request):
-        return webapp2.uri_for('model-resource-description-%s' % cls.slugify())
+        return webapp2.uri_for('model-resource-root-%s' % cls.slugify())
 
     @classmethod
     def routes(cls):
+        slugified = cls.slugify()
         return (
-            webapp2.Route('/%s' % cls.slugify(), cls, name='model-resource-description-%s' % cls.slugify()),
-            webapp2.Route('/%s/([^\/]*)\/?' % cls.slugify(), cls, name='model-resource-%s' % cls.resource_class.model.__name__.lower()),
+            RouteEx(r'/%s' % slugified, cls, name='model-resource-root-%s' % slugified),
+            RouteEx(r'/%s/<remainder:.*>' % slugified, cls, name='model-resource-%s' % slugified)
         )
 
 

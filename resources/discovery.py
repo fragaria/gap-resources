@@ -1,5 +1,7 @@
 from google.appengine.ext import ndb
+
 from register import register
+
 
 def discover_models(moduls):
     from gap.utils.imports import import_class

@@ -2,9 +2,10 @@ from unittest import TestCase
 
 from google.appengine.ext import ndb
 
-from app.example_module.models import ExampleModel
 
 from resources import register
+
+from app.example_module.models import ExampleModel
 
 
 class MockModel(ndb.Model):
@@ -23,3 +24,4 @@ class TestUtils(TestCase):
         register.unregister(MockModel)
         self.assertEqual(False, register.is_registered(MockModel))
         self.assertEqual([ExampleModel], register.models())
+

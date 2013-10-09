@@ -9,6 +9,9 @@ class ModelRegistry(object):
     class NotRegistered(Exception):
         pass
 
+    class AlreadyRegistered(Exception):
+        pass
+
     def __init__(self):
         self._models = []
 
@@ -25,6 +28,9 @@ class ModelRegistry(object):
         return cls in self.models()
 
     def register(self, cls, handler=None):
+        if cls in [c for c, h in self._models]:
+            raise self.AlreadyRegistered('Cannot register %r, already present in registry.' % cls.__name__)
+
         if handler is not None and not issubclass(handler, BaseResourceHandler):
             raise ValueError('Cannot register: %r must be subclass of '
                              'BaseResourceHandler.' % handler.__name__)
