@@ -3,3 +3,5 @@
 .idea
 .project.vim
 .DS_Store
+.*.sw*
+.venv

@@ -10,7 +10,8 @@ Resource = resource_for_model(ExampleModel)
 
 class TestViews(WebAppTestBase):
     def test_root(self):
-        resp = self.get('/resources/example-model')
+        resp = self.get('/resources/example-model', 404)
+        self.assertEquals(resp.body, '')
         self.assertEquals(resp.status_code, 200)
         self.assertEquals(resp.content_type, 'application/json')
 
