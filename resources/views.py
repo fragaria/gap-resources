@@ -31,10 +31,13 @@ class BaseResourceHandler(webapp2.RequestHandler):
     def describe(self):
         self.response.write(json.dumps(self._res('describe')))
 
+    def options(self, id=None):
+        return
+
     def get(self, id=None):
         action = 'list'
 
-        if id is not None:
+        if id is not None and id != '':
             action = 'get'
 
         if action == 'get':
@@ -105,7 +108,7 @@ class BaseResourceHandler(webapp2.RequestHandler):
         return (
             webapp2.Route(r'/%s/describe' % slugified, cls, name='model-resource-describe-%s' % slugified, handler_method='describe'),
             webapp2.Route(r'/%s/<id:[^/]*><:/?>' % slugified, cls, name='model-resource-%s' % slugified),
-            webapp2.Route(r'/%s' % slugified, cls, name='model-resource-root-%s' % slugified),
+            webapp2.Route(r'/%s<:/?>' % slugified, cls, name='model-resource-root-%s' % slugified),
         )
 
 
