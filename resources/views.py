@@ -32,8 +32,7 @@ class BaseResourceHandler(webapp2.RequestHandler):
     def describe(self):
         self.response.write(json.dumps(self._res('describe')))
 
-    def get(self, remainder=None, *args, **kwargs):
-        action = 'list'
+    def get(self, action='list', *args, **kwargs):
 
         if len(args) != 0:
             if args[0] == 'describe':
@@ -41,15 +40,14 @@ class BaseResourceHandler(webapp2.RequestHandler):
             elif args[0] != '':
                 action = 'get'
 
-        print args, action, remainder
+        print '%r' % ((args, kwargs, action),)
 
         if action == 'describe':
             ret = self._res('describe')
         elif action == 'get':
             ret = self._res('get', args[0])
             if ret is None:
-                self.response.set_status(404)
-                return
+                self.abort(404)
         else:
             if self.request.arguments():
                 filter = dict((a, self.request.get(a)) for a in self.request.arguments() if a not in ('_o', '_s'))
@@ -119,8 +117,8 @@ class BaseResourceHandler(webapp2.RequestHandler):
     def routes(cls):
         slugified = cls.slugify()
         return (
-            RouteEx(r'/%s' % slugified, cls, name='model-resource-root-%s' % slugified),
-            RouteEx(r'/%s/<remainder:.*>' % slugified, cls, name='model-resource-%s' % slugified)
+            webapp2.Route(r'/%s/<action:[^/]*><:/?>' % slugified, cls, name='model-resource-%s' % slugified),
+            webapp2.Route(r'/%s' % slugified, cls, name='model-resource-root-%s' % slugified),
         )
 
 
