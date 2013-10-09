@@ -63,5 +63,8 @@ class ModelRegistry(object):
             if cls == m:
                 return m, h
 
+    def get_handler(self, cls):
+        return self.handler_for_model(*self.get(cls))
+
 
 register = ModelRegistry()

@@ -16,14 +16,17 @@ class TestModel(ndb.Model):
     requiredProperty = ndb.IntegerProperty(required=True, indexed=True)
 
 
-Resource = resource_for_model(TestModel)
-
-
 class TestKeyModel(ndb.Model):
     keyProperty = ndb.KeyProperty(kind=TestModel)
 
 
+class TestStructuredPropertyModel(ndb.Model):
+    structuredProperty = ndb.StructuredProperty(TestModel, repeated=True)
+
+
+Resource = resource_for_model(TestModel)
 KeyResource = resource_for_model(TestKeyModel)
+StructuredResource = resource_for_model(TestStructuredPropertyModel)
 
 
 def _create_instance(req, **kwargs):
@@ -56,14 +59,22 @@ class TestResource(TestCase):
         for k in TestModel.query().fetch(keys_only=True):
             k.delete()
 
+        for k in TestKeyModel.query().fetch(keys_only=True):
+            k.delete()
+
+        for k in TestStructuredPropertyModel.query().fetch(keys_only=True):
+            k.delete()
+
         register.register(TestModel)
         register.register(TestKeyModel)
+        register.register(TestStructuredPropertyModel)
 
     def tearDown(self):
         self.testbed.deactivate()
 
         register.unregister(TestModel)
         register.unregister(TestKeyModel)
+        register.unregister(TestStructuredPropertyModel)
 
     def test_as_dict(self):
         now = datetime.now()
@@ -224,4 +235,17 @@ class TestResource(TestCase):
             'model': 'TestKeyModel',
             'keyProperty': Resource(inst).as_dict(),
             'id': kinst.key.id()
+        })
+
+    def test_structuredproperties(self):
+        i1 = _create_instance(0)
+        i2 = _create_instance(1)
+
+        sinst = TestStructuredPropertyModel(structuredProperty=[i1, i2])
+        sinst.put()
+
+        self.assertEqual(StructuredResource(sinst).as_dict(), {
+            'model': 'TestStructuredPropertyModel',
+            'structuredProperty': [Resource(i1).as_dict(), Resource(i2).as_dict()],
+            'id': sinst.key.id()
         })

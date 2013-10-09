@@ -9,15 +9,35 @@ from google.appengine.api.datastore_errors import BadFilterError, BadValueError,
 __all__ = ['Resource', 'resource_for_model']
 
 
-def _v(if_none_func, v):
+def _v(if_not_none_func, v):
     if v is None:
         return None
-    return if_none_func(v)
+    return if_not_none_func(v)
 
 
 def _val(map, prop, val):
     propname = prop.__class__.__name__
     return map[propname](val) if propname in map else val
+
+
+def _structured_prop_to_str(v):
+    from resources import register
+
+    ret = []
+
+    if v:
+        valcls = v[0].__class__
+
+        if not register.is_registered(valcls):
+            raise ValueError('Cannot dump %r within structured property, not '
+                             'registered in resources registry.' % valcls)
+
+        ValueResourceClass = register.get_handler(valcls).resource_class
+
+        for v_ in v:
+            ret.append(ValueResourceClass(v_).as_dict())
+
+    return ret
 
 
 val_from_str = partial(_val, {
@@ -34,6 +54,7 @@ val_to_str = partial(_val, {
     'DateProperty': partial(_v, lambda v: int(time.mktime(v.timetuple())) * 1000),
     'DateTimeProperty': partial(_v, lambda v: int(time.mktime(v.timetuple())) * 1000),
     'KeyProperty': partial(_v, lambda v: {'model': v.kind(), 'id': v.id()}),
+    'StructuredProperty': partial(_v, _structured_prop_to_str)
 })
 
 
@@ -94,13 +115,7 @@ class Resource(object):
                 # Use custom resource class if registered, fallback to defaults
                 # if not.
                 if register.is_registered(related.__class__):
-                    ResourceHandler = register.get(related.__class__)[1]
-
-                    if ResourceHandler is not None:
-                        ResourceClass = ResourceHandler.resource_class
-                    else:
-                        ResourceClass = resource_for_model(related.__class__)
-
+                    ResourceClass = register.get_handler(related.__class__).resource_class
                     ret[prop] = ResourceClass(related).as_dict(include_class_info=include_class_info)
                     continue
 
