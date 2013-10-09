@@ -19,7 +19,7 @@ class ModelRegistry(object):
         return ( (model, self.handler_for_model(model, handler)) for model, handler in self._models)
 
     def __repr__(self):
-        return '<ModelRegistry: %s>' % ','.join([unicode(m) for m in self.models()])
+        return '<ModelRegistry: %s>' % ','.join([unicode(m.__name__) for m in self.models()])
 
     def __call__(self, *args, **kwargs):
         return self.register(*args, **kwargs)

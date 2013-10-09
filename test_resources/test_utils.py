@@ -25,3 +25,16 @@ class TestUtils(TestCase):
         self.assertEqual(False, register.is_registered(MockModel))
         self.assertEqual([ExampleModel], register.models())
 
+    def test_repr(self):
+        register.register(MockModel)
+        self.assertEqual('<ModelRegistry: ExampleModel,MockModel>', repr(register))
+        register.unregister(MockModel)
+
+    def test_already_registered(self):
+        self.assertRaises(register.AlreadyRegistered, lambda: register.register(ExampleModel))
+
+    def test_not_registered(self):
+        self.assertRaises(register.NotRegistered, lambda: register.unregister(MockModel))
+
+    def test_register_takes_only_resourcehandler_subclasses(self):
+        self.assertRaises(ValueError, lambda: register.register(MockModel, handler=object))

@@ -33,7 +33,7 @@ val_to_str = partial(_val, {
     'BooleanProperty': partial(_v, lambda v: 'true' if v else 'false'),
     'DateProperty': partial(_v, lambda v: int(time.mktime(v.timetuple())) * 1000),
     'DateTimeProperty': partial(_v, lambda v: int(time.mktime(v.timetuple())) * 1000),
-    'KeyProperty': partial(_v, lambda v: {'model': v.kind(), 'id': v.id()})
+    'KeyProperty': partial(_v, lambda v: {'model': v.kind(), 'id': v.id()}),
 })
 
 
@@ -249,7 +249,7 @@ class Resource(object):
                 info['default'] = prop._default
 
             if prop._choices:
-                info['choices'] = prop._choices
+                info['choices'] = list(prop._choices)
 
             if prop._validator:
                 info['validator'] = prop._validator

@@ -1,6 +1,5 @@
 import re
 import json
-from gap.utils.routes import RouteEx
 import webapp2
 
 from gap.utils.decorators import as_view
@@ -32,20 +31,14 @@ class BaseResourceHandler(webapp2.RequestHandler):
     def describe(self):
         self.response.write(json.dumps(self._res('describe')))
 
-    def get(self, action='list', *args, **kwargs):
+    def get(self, id=None):
+        action = 'list'
 
-        if len(args) != 0:
-            if args[0] == 'describe':
-                action = 'describe'
-            elif args[0] != '':
-                action = 'get'
+        if id is not None:
+            action = 'get'
 
-        print '%r' % ((args, kwargs, action),)
-
-        if action == 'describe':
-            ret = self._res('describe')
-        elif action == 'get':
-            ret = self._res('get', args[0])
+        if action == 'get':
+            ret = self._res('get', id)
             if ret is None:
                 self.abort(404)
         else:
@@ -67,14 +60,7 @@ class BaseResourceHandler(webapp2.RequestHandler):
 
         self.response.write(json.dumps(ret))
 
-    def post(self, *args, **kwargs):
-        if len(args) == 1 and args[0] == '':
-            self.response.set_status(400)
-            self.response.write('Wrong args!')
-            return
-
-        id = args[0] if len(args) > 0 else None
-
+    def post(self, id=None):
         try:
             data = json.loads(self.request.body)
         except ValueError, e:
@@ -94,12 +80,12 @@ class BaseResourceHandler(webapp2.RequestHandler):
 
         self.response.write(json.dumps(ret))
 
-    def delete(self, *args, **kwargs):
-        if not len(args) or args[0] == '':
+    def delete(self, id=None):
+        if id is None:
             self.response.set_status(400)
             return
 
-        if not self._res('delete', args[0]):
+        if not self._res('delete', id):
             self.response.set_status(404)
 
         return
@@ -117,7 +103,8 @@ class BaseResourceHandler(webapp2.RequestHandler):
     def routes(cls):
         slugified = cls.slugify()
         return (
-            webapp2.Route(r'/%s/<action:[^/]*><:/?>' % slugified, cls, name='model-resource-%s' % slugified),
+            webapp2.Route(r'/%s/describe' % slugified, cls, name='model-resource-describe-%s' % slugified, handler_method='describe'),
+            webapp2.Route(r'/%s/<id:[^/]*><:/?>' % slugified, cls, name='model-resource-%s' % slugified),
             webapp2.Route(r'/%s' % slugified, cls, name='model-resource-root-%s' % slugified),
         )
 
