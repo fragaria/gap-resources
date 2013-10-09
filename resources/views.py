@@ -2,7 +2,7 @@ import re
 import json
 import webapp2
 
-from utils.decorators import as_view
+from gap.utils.decorators import as_view
 
 
 def slugify(name):
@@ -59,11 +59,12 @@ class BaseResourceHandler(webapp2.RequestHandler):
         self.response.write(json.dumps(ret))
 
     def post(self, *args, **kwargs):
-        if len(args) == 0 or args[0] == '':
+        if len(args) == 1 and args[0] == '':
             self.response.set_status(400)
+            self.response.write('Wrong args!')
             return
 
-        id = args[0]
+        id = args[0] if len(args) > 0 else None
 
         try:
             data = json.loads(self.request.body)
@@ -100,15 +101,24 @@ class BaseResourceHandler(webapp2.RequestHandler):
         return slugify(cls.resource_class.model.__name__)
 
     @classmethod
+    def uri_for(cls, request):
+        return webapp2.uri_for('model-resource-description-%s' % cls.slugify())
+
+    @classmethod
     def routes(cls):
         return (
-            ('/%s' % cls.slugify(), cls),
-            ('/%s/([^\/]*)\/?' % cls.slugify(), cls),
+            webapp2.Route('/%s' % cls.slugify(), cls, name='model-resource-description-%s' % cls.slugify()),
+            webapp2.Route('/%s/([^\/]*)\/?' % cls.slugify(), cls, name='model-resource-%s' % cls.resource_class.model.__name__.lower()),
         )
+
 
 @as_view
 def model_list(request, response):
     from resources import register
     response.write(json.dumps([
-        {'model': m.__name__, 'resource': slugify(m.__name__)} for m in register.models()
+        {
+            'model': model_class.__name__,
+            'full_module': '%s.%s' % (model_class.__module__, model_class.__name__),
+            'resource': handler.uri_for(request),
+        } for model_class, handler in register
     ]))

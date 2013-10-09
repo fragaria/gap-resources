@@ -1,3 +1,4 @@
+from resource import resource_for_model
 from views import BaseResourceHandler
 
 
@@ -12,7 +13,7 @@ class ModelRegistry(object):
         self._models = []
 
     def __iter__(self):
-        return iter(self._models)
+        return ( (model, self.handler_for_model(model, handler)) for model, handler in self._models)
 
     def __repr__(self):
         return '<ModelRegistry: %s>' % ','.join([unicode(m) for m in self.models()])
@@ -37,6 +38,16 @@ class ModelRegistry(object):
                     break
         else:
             raise self.NotRegistered('Cannot unregister %r, not found in registry.' % cls.__name__)
+
+    @staticmethod
+    def handler_for_model(cls, handler=None):
+        if handler is None:
+            handler = type(
+                '%sResourceHandler' % cls.__name__,
+                (BaseResourceHandler,),
+                {'resource_class': resource_for_model(cls)}
+            )
+        return handler
 
     def models(self):
         return [m[0] for m in self._models]

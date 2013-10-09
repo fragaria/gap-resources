@@ -21,13 +21,12 @@ IN THE SOFTWARE.
 """
 
 from setuptools import setup, find_packages
-import resources
 
 setup(
     name='gap-resources',
-    version=resources.__versionstr__,
+    version='0.0.1',
     description='Generic model resources for Google Appengine.',
-    author='BorIS team',
+    author='Fragaria',
     author_email='info@fragaria.cz',
     license='MIT',
 

@@ -66,6 +66,17 @@ class Resource(object):
             ret[prop_name] = prop_type.__class__.__name__.replace('Property', '').lower()
         return ret
 
+    @classmethod
+    def _propertize_vals(cls, values):
+        propertized = {}
+        for prop, val in values.items():
+            try:
+                prop = cls.model._properties[prop]
+                propertized[prop] = val_from_str(prop, val)
+            except ValueError, e:
+                raise cls.InvalidValue(e)
+        return propertized
+
     def as_dict(self, include_class_info=True, span_keys=None):
         from register import register
 
@@ -185,9 +196,11 @@ class Resource(object):
             instance = None
 
         if instance is not None:
-            for attr, val in values.items():
+            propertized = cls._propertize_vals(values)
+
+            for prop, val in propertized.items():
                 try:
-                    setattr(instance, attr, val)
+                    setattr(instance, prop, val)
                 except BadValueError, e:
                     raise cls.InvalidValue(e)
 
@@ -198,7 +211,8 @@ class Resource(object):
 
     @classmethod
     def create(cls, values, span_keys=None):
-        instance = cls.model(**values)
+        propertized = cls._propertize_vals(values)
+        instance = cls.model(**propertized)
         instance.put()
         return cls(instance).as_dict(span_keys=span_keys)
 
