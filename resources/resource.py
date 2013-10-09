@@ -71,8 +71,8 @@ class Resource(object):
         propertized = {}
         for prop, val in values.items():
             try:
-                prop = cls.model._properties[prop]
-                propertized[prop] = val_from_str(prop, val)
+                p = cls.model._properties[prop]
+                propertized[prop] = val_from_str(p, val)
             except ValueError, e:
                 raise cls.InvalidValue(e)
         return propertized

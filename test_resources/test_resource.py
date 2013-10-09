@@ -88,7 +88,7 @@ class TestResource(TestCase):
     def test_create(self):
         inst_dict = Resource.create({
             'requiredProperty': 1,
-            'datetimeProperty': datetime.now()
+            'datetimeProperty': 1381307680000
         })
 
         self.assertEqual(inst_dict, Resource.get(inst_dict['id']))
@@ -96,17 +96,18 @@ class TestResource(TestCase):
     def test_update(self):
         now = datetime.now()
         not_now = datetime.now() + timedelta(days=1)
+        not_now_stamp = int(time.mktime(not_now.timetuple())) * 1000
 
         inst = _create_instance(0, datetimeProperty=now)
         inst.datetimeProperty = not_now
 
         old_updated = Resource(inst).as_dict()
-        new = Resource.update(inst.key.id(), {'datetimeProperty': not_now})
+        new = Resource.update(inst.key.id(), {'datetimeProperty': not_now_stamp})
 
         self.assertEqual(new, old_updated)
 
         # Not existent id
-        self.assertEqual(Resource.update(0, {'datetimeProperty': not_now}), None)
+        self.assertEqual(Resource.update(0, {'datetimeProperty': not_now_stamp}), None)
 
     def test_delete(self):
         id = _create_instance(0).key.id()
