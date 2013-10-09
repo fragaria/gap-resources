@@ -5,6 +5,11 @@ import webapp2
 from utils.decorators import as_view
 
 
+def slugify(name):
+    s1 = re.sub('(.)([A-Z][a-z]+)', r'\1-\2', name)
+    return re.sub('([a-z0-9])([A-Z])', r'\1-\2', s1).lower()
+
+
 class BaseResourceHandler(webapp2.RequestHandler):
     resource_class = None
 
@@ -92,9 +97,7 @@ class BaseResourceHandler(webapp2.RequestHandler):
     @classmethod
     def slugify(cls):
         '''converts CamelCase to camel-case'''
-        name = cls.resource_class.model.__name__
-        s1 = re.sub('(.)([A-Z][a-z]+)', r'\1-\2', name)
-        return re.sub('([a-z0-9])([A-Z])', r'\1-\2', s1).lower()
+        return slugify(cls.resource_class.model.__name__)
 
     @classmethod
     def routes(cls):
@@ -107,5 +110,5 @@ class BaseResourceHandler(webapp2.RequestHandler):
 def model_list(request, response):
     from resources import register
     response.write(json.dumps([
-        {'model': m.__name__, 'resource': m.__name__.lower()} for m in register.models()
+        {'model': m.__name__, 'resource': slugify(m.__name__)} for m in register.models()
     ]))
