@@ -179,11 +179,7 @@ class Resource(object):
         rows = [row.as_dict(include_class_info=False, span_keys=span_keys)
                 for row in _list(ordering, query)]
 
-        return {
-            'objects': rows,
-            'model': cls.model.__name__,
-            'count': len(rows)
-        }
+        return rows
 
     @classmethod
     def query(cls, ordering=None, span_keys=None, **filters):
