@@ -6,7 +6,7 @@ Installation
 
 1. Install the package by::
 
-    bin/gip install -e 'git+https://github.com/fragaria/gap-resources'
+    bin/gip install -e 'git+https://github.com/fragaria/gap-resources#egg=gap-resources'
 
 
 2. Add routes to src/routes.py::
