@@ -64,6 +64,8 @@ class BaseResourceHandler(webapp2.RequestHandler):
         self.response.write(json.dumps(ret))
 
     def post(self, id=None):
+        if id == '':
+            id = None
         try:
             data = json.loads(self.request.body)
         except ValueError, e:
