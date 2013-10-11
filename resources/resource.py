@@ -126,6 +126,8 @@ class Resource(object):
 
         if include_class_info:
             ret['model'] = self.instance.__class__.__name__
+        if hasattr(self.instance, 'export_resource'):
+            ret = self.instance.export_resource(ret)
 
         return ret
 
