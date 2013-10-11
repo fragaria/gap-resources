@@ -166,6 +166,8 @@ class Resource(object):
         except ValueError:
             pass
 
+        if hasattr(cls.model, 'pre_import_resource'):
+            values = cls.model.pre_import_resource(values)
         try:
             instance = cls.model.get_by_id(id)
         except BadRequestError:
@@ -180,6 +182,9 @@ class Resource(object):
                 except BadValueError, e:
                     raise cls.InvalidValue(e)
 
+            if hasattr(instance, 'post_import_resource'):
+                instance.post_import_resource(values)
+
             instance.put()
             return cls(instance).as_dict(span_keys=span_keys)
 
@@ -187,8 +192,12 @@ class Resource(object):
 
     @classmethod
     def create(cls, values, span_keys=None):
+        if hasattr(cls.model, 'pre_import_resource'):
+            values = cls.model.pre_import_resource(values)
         propertized = cls._propertize_vals(values)
         instance = cls.model(**propertized)
+        if hasattr(instance, 'post_import_resource'):
+            instance.post_import_resource(values)
         instance.put()
         return cls(instance).as_dict(span_keys=span_keys)
 
