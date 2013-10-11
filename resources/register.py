@@ -48,6 +48,13 @@ class ModelRegistry(object):
 
         self._models.append((cls, handler))
 
+    def register_handler(self, handler):
+        if handler.resource_class is None:
+            raise ValueError('Cannot register handler %r, it\'s '
+                             'missing `resource_class`.' % handler.__name__)
+
+        self.register(handler.resource_class.model, handler)
+
     def unregister(self, cls):
         if self.is_registered(cls):
             for m, h in self._models:
@@ -60,11 +67,25 @@ class ModelRegistry(object):
     @staticmethod
     def handler_for_model(cls, handler=None, resource_class=None):
         if handler is None:
-            handler = type(
+            return type(
                 '%sResourceHandler' % cls.__name__,
                 (BaseResourceHandler,),
                 {'resource_class': resource_class or resource_for_model(cls)}
             )
+
+        if resource_class is None:
+            resource_class = resource_for_model(cls)
+
+        if resource_class.model is None:
+            resource_class.model = cls
+
+        if handler.resource_class is None:
+            handler = type(
+                '%sResourceHandler' % cls.__name__,
+                (handler,),
+                {'resource_class': resource_class}
+            )
+
         return handler
 
     def models(self):
