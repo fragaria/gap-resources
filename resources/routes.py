@@ -1,6 +1,5 @@
 from register import register
 from discovery import discover_models
-from views import BaseResourceHandler
 
 try:
     import config
