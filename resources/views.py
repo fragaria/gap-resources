@@ -102,7 +102,7 @@ class BaseResourceHandler(webapp2.RequestHandler):
 
     @classmethod
     def uri_for(cls, request):
-        return webapp2.uri_for('model-resource-root-%s' % cls.slugify())
+        return webapp2.uri_for('model-resource-root-%s' % cls.slugify(), None, '')
 
     @classmethod
     def routes(cls):
