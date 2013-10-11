@@ -1,61 +1,10 @@
-from datetime import date, datetime
-from functools import partial
-import time
-
 from google.appengine.ext import ndb
 from google.appengine.api.datastore_errors import BadFilterError, BadValueError, BadRequestError
 
+from serialization import val_from_str, val_to_str
+
 
 __all__ = ['Resource', 'resource_for_model']
-
-
-def _v(if_not_none_func, v):
-    if v is None:
-        return None
-    return if_not_none_func(v)
-
-
-def _val(map, prop, val):
-    propname = prop.__class__.__name__
-    return map[propname](val) if propname in map else val
-
-
-def _structured_prop_to_str(v):
-    from resources import register
-
-    ret = []
-
-    if v:
-        valcls = v[0].__class__
-
-        if not register.is_registered(valcls):
-            raise ValueError('Cannot dump %r within structured property, not '
-                             'registered in resources registry.' % valcls)
-
-        ValueResourceClass = register.get_handler(valcls).resource_class
-
-        for v_ in v:
-            ret.append(ValueResourceClass(v_).as_dict())
-
-    return ret
-
-
-val_from_str = partial(_val, {
-    'IntegerProperty': partial(_v, lambda v: int(v)),
-    'FloatProperty': partial(_v, lambda v: float(v)),
-    'BooleanProperty': partial(_v, lambda v: v == 'true'),
-    'DateProperty': partial(_v, lambda v: date.fromtimestamp(int(v) / 1000)),
-    'DateTimeProperty': partial(_v, lambda v: datetime.fromtimestamp(int(v) / 1000)),
-    'KeyProperty': partial(_v, lambda v: ndb.Key(v['model'], v['id'])),
-})
-
-val_to_str = partial(_val, {
-    'BooleanProperty': partial(_v, lambda v: 'true' if v else 'false'),
-    'DateProperty': partial(_v, lambda v: int(time.mktime(v.timetuple())) * 1000),
-    'DateTimeProperty': partial(_v, lambda v: int(time.mktime(v.timetuple())) * 1000),
-    'KeyProperty': partial(_v, lambda v: {'model': v.kind(), 'id': v.id()}),
-    'StructuredProperty': partial(_v, _structured_prop_to_str)
-})
 
 
 class Resource(object):
@@ -122,7 +71,7 @@ class Resource(object):
 
             ret[prop] = val_to_str(p, getattr(self.instance, prop))
 
-        ret['id'] = self.instance.key.id()
+        ret['id'] = self.instance.key.id() if self.instance.key is not None else None
 
         if include_class_info:
             ret['model'] = self.instance.__class__.__name__
