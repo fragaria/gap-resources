@@ -13,11 +13,7 @@ class TestViews(WebAppTestBase):
         resp = self.get('/resources/example-model')
         self.assertEquals(resp.status_code, 200)
         self.assertEquals(resp.content_type, 'application/json')
-        self.assertEqual(resp.json, {
-            'model': 'ExampleModel',
-            'count': 0,
-            'objects': []
-        })
+        self.assertEqual(resp.json, [])
 
     def test_trailing_slashes(self):
         resp0 = self.get('/resources/example-model')

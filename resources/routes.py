@@ -2,7 +2,10 @@ from register import register
 from discovery import discover_models
 from views import BaseResourceHandler
 
-import config
+try:
+    import config
+except ImportError:
+    config = None
 
 
 __all__ = ['routes']

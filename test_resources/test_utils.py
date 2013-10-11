@@ -36,5 +36,5 @@ class TestUtils(TestCase):
     def test_not_registered(self):
         self.assertRaises(register.NotRegistered, lambda: register.unregister(MockModel))
 
-    def test_register_takes_only_resourcehandler_subclasses(self):
-        self.assertRaises(ValueError, lambda: register.register(MockModel, handler=object))
+    def test_register_takes_only_resourcehandler_or_resource_subclasses(self):
+        self.assertRaises(ValueError, lambda: register.register(MockModel, handler_or_resource=object))

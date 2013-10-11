@@ -9,6 +9,7 @@ __all__ = ['Resource', 'resource_for_model']
 
 class Resource(object):
     model = None
+    default_ordering = None
     _span_keys = None
 
     class InvalidFilter(Exception):
@@ -98,31 +99,43 @@ class Resource(object):
         return None
 
     @classmethod
+    def queryset(cls):
+        return cls.model.query()
+
+    @classmethod
+    def __parse_ordering(cls, ordering):
+        orderings = []
+        props = cls.model._properties
+
+        if not hasattr(ordering, '__iter__'):
+            ordering = [ordering]
+
+        for o in ordering:
+            prop, neg = (o[1:], True) if o.startswith('-') else (o, False)
+
+            if not prop in props or not props[prop]._indexed:
+                raise cls.InvalidOrderingProperty("Trying to order %r "
+                                                  "by unknown property "
+                                                  "%r" % (cls.__name__, prop))
+            if neg:
+                orderings.append(-props[prop])
+            else:
+                orderings.append(props[prop])
+
+        return orderings
+
+    @classmethod
     def list(cls, ordering=None, query=None, span_keys=None):
         def _list(ordering, query):
             if query is None:
-                query = cls.model.query()
+                query = cls.queryset()
+
+            orderings = cls.default_ordering
 
             if ordering is not None:
-                orderings = []
-                props = cls.model._properties
+                orderings = cls.__parse_ordering(ordering)
 
-                if not hasattr(ordering, '__iter__'):
-                    ordering = [ordering]
-
-                for o in ordering:
-                    prop, neg = (o[1:], True) if o.startswith('-') else (o, False)
-
-                    if not prop in props or not props[prop]._indexed:
-                        raise cls.InvalidOrderingProperty("Trying to order %r "
-                                                          "by unknown property "
-                                                          "%r" % (cls.__name__, prop))
-
-                    if neg:
-                        orderings.append(-props[prop])
-                    else:
-                        orderings.append(props[prop])
-
+            if orderings is not None:
                 query = query.order(*orderings)
 
             for row in query:

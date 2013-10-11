@@ -1,5 +1,6 @@
 from resource import resource_for_model
 from views import BaseResourceHandler
+from resource import Resource
 
 
 __all__ = ['register']
@@ -27,13 +28,24 @@ class ModelRegistry(object):
     def is_registered(self, cls):
         return cls in self.models()
 
-    def register(self, cls, handler=None):
+    def register(self, cls, handler_or_resource=None):
         if cls in [c for c, h in self._models]:
             raise self.AlreadyRegistered('Cannot register %r, already present in registry.' % cls.__name__)
 
-        if handler is not None and not issubclass(handler, BaseResourceHandler):
-            raise ValueError('Cannot register: %r must be subclass of '
-                             'BaseResourceHandler.' % handler.__name__)
+        handler = None
+
+        if handler_or_resource is not None:
+            if issubclass(handler_or_resource, Resource):
+                handler = self.handler_for_model(cls, resource_class=handler_or_resource)
+            elif issubclass(handler_or_resource, BaseResourceHandler):
+                handler = handler_or_resource
+            else:
+                raise ValueError('Cannot register: %r must be subclass of '
+                                 'BaseResourceHandler or Resource.' % handler_or_resource.__name__)
+
+        if handler is None:
+            handler = self.handler_for_model(cls)
+
         self._models.append((cls, handler))
 
     def unregister(self, cls):
@@ -46,12 +58,12 @@ class ModelRegistry(object):
             raise self.NotRegistered('Cannot unregister %r, not found in registry.' % cls.__name__)
 
     @staticmethod
-    def handler_for_model(cls, handler=None):
+    def handler_for_model(cls, handler=None, resource_class=None):
         if handler is None:
             handler = type(
                 '%sResourceHandler' % cls.__name__,
                 (BaseResourceHandler,),
-                {'resource_class': resource_for_model(cls)}
+                {'resource_class': resource_class or resource_for_model(cls)}
             )
         return handler
 
