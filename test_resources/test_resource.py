@@ -104,6 +104,15 @@ class TestResource(TestCase):
 
         self.assertEqual(inst_dict, Resource.get(inst_dict['id']))
 
+    def test_create_skips_unknown_properties(self):
+        inst_dict = Resource.create({
+            'requiredProperty': 1,
+            'datetimeProperty': 1381307680000,
+            'unknownProperty': 'value'
+        })
+
+        self.assertEqual(inst_dict, Resource.get(inst_dict['id']))
+
     def test_update(self):
         now = datetime.now()
         not_now = datetime.now() + timedelta(days=1)

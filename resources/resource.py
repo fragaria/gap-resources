@@ -46,7 +46,7 @@ val_from_str = partial(_val, {
     'BooleanProperty': partial(_v, lambda v: v == 'true'),
     'DateProperty': partial(_v, lambda v: date.fromtimestamp(int(v) / 1000)),
     'DateTimeProperty': partial(_v, lambda v: datetime.fromtimestamp(int(v) / 1000)),
-    'KeyProperty': partial(_v, lambda v: ndb.Key(v['model'], v['id']))
+    'KeyProperty': partial(_v, lambda v: ndb.Key(v['model'], v['id'])),
 })
 
 val_to_str = partial(_val, {
@@ -91,11 +91,12 @@ class Resource(object):
     def _propertize_vals(cls, values):
         propertized = {}
         for prop, val in values.items():
-            try:
-                p = cls.model._properties[prop]
-                propertized[prop] = val_from_str(p, val)
-            except ValueError, e:
-                raise cls.InvalidValue(e)
+            # Skip values which are not in model.
+            if prop in cls.model._properties:
+                try:
+                    propertized[prop] = val_from_str(cls.model._properties[prop], val)
+                except ValueError, e:
+                    raise cls.InvalidValue(e)
         return propertized
 
     def as_dict(self, include_class_info=True, span_keys=None):
