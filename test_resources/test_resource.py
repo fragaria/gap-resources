@@ -29,7 +29,7 @@ KeyResource = resource_for_model(TestKeyModel)
 StructuredResource = resource_for_model(TestStructuredPropertyModel)
 
 
-def _create_instance(req, **kwargs):
+def _create_instance(req, do_put=True, **kwargs):
     attrs = {
         'requiredProperty': req,
         'datetimeProperty': datetime.now()
@@ -37,7 +37,9 @@ def _create_instance(req, **kwargs):
     attrs.update(kwargs)
 
     i = TestModel(**attrs)
-    i.put()
+
+    if do_put:
+        i.put()
 
     return i
 
@@ -154,12 +156,8 @@ class TestResource(TestCase):
         i1 = _create_instance(0)
         i2 = _create_instance(1)
 
-        self.assertEqual(Resource.list(), {
-            'model': 'TestModel',
-            'count': 2,
-            'objects': [Resource(i1).as_dict(include_class_info=False),
-                        Resource(i2).as_dict(include_class_info=False)]
-        })
+        self.assertEqual(Resource.list(), [Resource(i1).as_dict(include_class_info=False),
+                                           Resource(i2).as_dict(include_class_info=False)])
 
     def test_query_filters(self):
         self.maxDiff = None
@@ -167,11 +165,7 @@ class TestResource(TestCase):
         i1 = _create_instance(0, datetimeProperty=datetime(2012, 1, 1))
         i2 = _create_instance(1)
 
-        self.assertEqual(Resource.query(requiredProperty=1), {
-            'model': 'TestModel',
-            'count': 1,
-            'objects': [Resource(i2).as_dict(include_class_info=False)]
-        })
+        self.assertEqual(Resource.query(requiredProperty=1), [Resource(i2).as_dict(include_class_info=False)])
 
         # Cannot filter on non-indexed
         self.assertRaises(Resource.InvalidFilter, lambda: Resource.query(integerProperty=1))
@@ -180,11 +174,7 @@ class TestResource(TestCase):
         self.assertRaises(Resource.InvalidFilter, lambda: Resource.query(integerPropertyas=1))
 
         # Provide timestamp when filtering on dates
-        self.assertEqual(Resource.query(datetimeProperty=int(time.mktime(i1.datetimeProperty.timetuple())) * 1000), {
-            'model': 'TestModel',
-            'count': 1,
-            'objects': [Resource(i1).as_dict(include_class_info=False)]
-        })
+        self.assertEqual(Resource.query(datetimeProperty=int(time.mktime(i1.datetimeProperty.timetuple())) * 1000), [Resource(i1).as_dict(include_class_info=False)])
 
     def test_query_orders(self):
         self.maxDiff = None
@@ -192,29 +182,18 @@ class TestResource(TestCase):
         i1 = _create_instance(0, datetimeProperty=datetime(2012, 1, 1))
         i2 = _create_instance(1, datetimeProperty=datetime(2013, 1, 1))
 
-        self.assertEqual(Resource.query(ordering='datetimeProperty'), {
-            'model': 'TestModel',
-            'count': 2,
-            'objects': [Resource(i1).as_dict(include_class_info=False),
-                        Resource(i2).as_dict(include_class_info=False)]
-        })
+        self.assertEqual(Resource.query(ordering='datetimeProperty'), [Resource(i1).as_dict(include_class_info=False),
+                                                                       Resource(i2).as_dict(include_class_info=False)])
 
-        self.assertEqual(Resource.query(ordering='-datetimeProperty'), {
-            'model': 'TestModel',
-            'count': 2,
-            'objects': [Resource(i2).as_dict(include_class_info=False),
-                        Resource(i1).as_dict(include_class_info=False)]
-        })
+        self.assertEqual(Resource.query(ordering='-datetimeProperty'), [Resource(i2).as_dict(include_class_info=False),
+                                                                        Resource(i1).as_dict(include_class_info=False)])
 
         i3 = _create_instance(2, datetimeProperty=datetime(2013, 1, 1))
 
-        self.assertEqual(Resource.query(ordering=['-datetimeProperty', 'requiredProperty']), {
-            'model': 'TestModel',
-            'count': 3,
-            'objects': [Resource(i2).as_dict(include_class_info=False),
-                        Resource(i3).as_dict(include_class_info=False),
-                        Resource(i1).as_dict(include_class_info=False)]
-        })
+        self.assertEqual(Resource.query(ordering=['-datetimeProperty', 'requiredProperty']), [
+            Resource(i2).as_dict(include_class_info=False),
+            Resource(i3).as_dict(include_class_info=False),
+            Resource(i1).as_dict(include_class_info=False)])
 
         # Cannot query on non-indexed
         self.assertRaises(Resource.InvalidOrderingProperty, lambda: Resource.query(ordering='integerProperty'))
@@ -246,7 +225,7 @@ class TestResource(TestCase):
             'id': kinst.key.id()
         })
 
-    def test_structuredproperties(self):
+    def test_structuredproperty_dump(self):
         i1 = _create_instance(0)
         i2 = _create_instance(1)
 
@@ -258,3 +237,16 @@ class TestResource(TestCase):
             'structuredProperty': [Resource(i1).as_dict(), Resource(i2).as_dict()],
             'id': sinst.key.id()
         })
+
+    def test_structuredproperty_load(self):
+        i1 = _create_instance(0, do_put=False)
+        i2 = _create_instance(1, do_put=False)
+
+        sinst_dict = StructuredResource.create({
+            'model': 'TestStructuredPropertyModel',
+            'structuredProperty': [Resource(i1).as_dict(), Resource(i2).as_dict()],
+        })
+
+        self.assertEqual(sinst_dict['structuredProperty'], [
+            Resource(i1).as_dict(), Resource(i2).as_dict()
+        ])
