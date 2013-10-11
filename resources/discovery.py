@@ -1,14 +1,14 @@
 from google.appengine.ext import ndb
 
+from gap.utils.imports import import_class
+
 from register import register
 
 
-def discover_models(moduls):
-    from gap.utils.imports import import_class
+def discover_models(modules):
+    for module in modules:
+        module = import_class(module)
 
-    for modul in moduls:
-        modul = import_class(modul)
-        models  = [ m for m in modul.__dict__.values() if isinstance(m, ndb.model.MetaModel) ]
-        for model in models:
+        for model in [m for m in module.__dict__.values() if isinstance(m, ndb.model.MetaModel)]:
             register(model)
 
