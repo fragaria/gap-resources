@@ -1,1 +1,8 @@
+*.pyc
+
 .idea
+.project.vim
+.DS_Store
+.coverage
+.*.sw*
+.venv

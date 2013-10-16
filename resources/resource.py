@@ -1,44 +1,15 @@
-from datetime import date, datetime
-from functools import partial
-import time
-
 from google.appengine.ext import ndb
 from google.appengine.api.datastore_errors import BadFilterError, BadValueError, BadRequestError
+
+from serialization import val_from_str, val_to_str
 
 
 __all__ = ['Resource', 'resource_for_model']
 
 
-def _v(if_none_func, v):
-    if v is None:
-        return None
-    return if_none_func(v)
-
-
-def _val(map, prop, val):
-    propname = prop.__class__.__name__
-    return map[propname](val) if propname in map else val
-
-
-val_from_str = partial(_val, {
-    'IntegerProperty': partial(_v, lambda v: int(v)),
-    'FloatProperty': partial(_v, lambda v: float(v)),
-    'BooleanProperty': partial(_v, lambda v: v == 'true'),
-    'DateProperty': partial(_v, lambda v: date.fromtimestamp(int(v) / 1000)),
-    'DateTimeProperty': partial(_v, lambda v: datetime.fromtimestamp(int(v) / 1000)),
-    'KeyProperty': partial(_v, lambda v: ndb.Key(v['model'], v['id']))
-})
-
-val_to_str = partial(_val, {
-    'BooleanProperty': partial(_v, lambda v: 'true' if v else 'false'),
-    'DateProperty': partial(_v, lambda v: int(time.mktime(v.timetuple())) * 1000),
-    'DateTimeProperty': partial(_v, lambda v: int(time.mktime(v.timetuple())) * 1000),
-    'KeyProperty': partial(_v, lambda v: {'model': v.kind(), 'id': v.id()})
-})
-
-
 class Resource(object):
     model = None
+    default_ordering = None
     _span_keys = None
 
     class InvalidFilter(Exception):
@@ -66,6 +37,18 @@ class Resource(object):
             ret[prop_name] = prop_type.__class__.__name__.replace('Property', '').lower()
         return ret
 
+    @classmethod
+    def _propertize_vals(cls, values):
+        propertized = {}
+        for prop, val in values.items():
+            # Skip values which are not in model.
+            if prop in cls.model._properties:
+                try:
+                    propertized[prop] = val_from_str(cls.model._properties[prop], val)
+                except ValueError, e:
+                    raise cls.InvalidValue(e)
+        return propertized
+
     def as_dict(self, include_class_info=True, span_keys=None):
         from register import register
 
@@ -83,22 +66,21 @@ class Resource(object):
                 # Use custom resource class if registered, fallback to defaults
                 # if not.
                 if register.is_registered(related.__class__):
-                    ResourceHandler = register.get(related.__class__)[1]
-
-                    if ResourceHandler is not None:
-                        ResourceClass = ResourceHandler.resource_class
-                    else:
-                        ResourceClass = resource_for_model(related.__class__)
-
+                    ResourceClass = register.get_handler(related.__class__).resource_class
                     ret[prop] = ResourceClass(related).as_dict(include_class_info=include_class_info)
                     continue
 
-            ret[prop] = val_to_str(p, getattr(self.instance, prop))
+            if self.instance._properties[prop]._repeated:
+                ret[prop] = [val_to_str(p, v) for v in getattr(self.instance, prop)]
+            else:
+                ret[prop] = val_to_str(p, getattr(self.instance, prop))
 
-        ret['id'] = self.instance.key.id()
+        ret['id'] = self.instance.key.id() if self.instance.key is not None else None
 
         if include_class_info:
             ret['model'] = self.instance.__class__.__name__
+        if hasattr(self.instance, 'export_resource'):
+            ret = self.instance.export_resource(ret)
 
         return ret
 
@@ -120,31 +102,43 @@ class Resource(object):
         return None
 
     @classmethod
+    def queryset(cls):
+        return cls.model.query()
+
+    @classmethod
+    def __parse_ordering(cls, ordering):
+        orderings = []
+        props = cls.model._properties
+
+        if not hasattr(ordering, '__iter__'):
+            ordering = [ordering]
+
+        for o in ordering:
+            prop, neg = (o[1:], True) if o.startswith('-') else (o, False)
+
+            if not prop in props or not props[prop]._indexed:
+                raise cls.InvalidOrderingProperty("Trying to order %r "
+                                                  "by unknown property "
+                                                  "%r" % (cls.__name__, prop))
+            if neg:
+                orderings.append(-props[prop])
+            else:
+                orderings.append(props[prop])
+
+        return orderings
+
+    @classmethod
     def list(cls, ordering=None, query=None, span_keys=None):
         def _list(ordering, query):
             if query is None:
-                query = cls.model.query()
+                query = cls.queryset()
+
+            orderings = cls.default_ordering
 
             if ordering is not None:
-                orderings = []
-                props = cls.model._properties
+                orderings = cls.__parse_ordering(ordering)
 
-                if not hasattr(ordering, '__iter__'):
-                    ordering = [ordering]
-
-                for o in ordering:
-                    prop, neg = (o[1:], True) if o.startswith('-') else (o, False)
-
-                    if not prop in props or not props[prop]._indexed:
-                        raise cls.InvalidOrderingProperty("Trying to order %r "
-                                                          "by unknown property "
-                                                          "%r" % (cls.__name__, prop))
-
-                    if neg:
-                        orderings.append(-props[prop])
-                    else:
-                        orderings.append(props[prop])
-
+            if orderings is not None:
                 query = query.order(*orderings)
 
             for row in query:
@@ -153,11 +147,7 @@ class Resource(object):
         rows = [row.as_dict(include_class_info=False, span_keys=span_keys)
                 for row in _list(ordering, query)]
 
-        return {
-            'objects': rows,
-            'model': cls.model.__name__,
-            'count': len(rows)
-        }
+        return rows
 
     @classmethod
     def query(cls, ordering=None, span_keys=None, **filters):
@@ -179,17 +169,24 @@ class Resource(object):
         except ValueError:
             pass
 
+        if hasattr(cls.model, 'pre_import_resource'):
+            values = cls.model.pre_import_resource(values)
         try:
             instance = cls.model.get_by_id(id)
         except BadRequestError:
             instance = None
 
         if instance is not None:
-            for attr, val in values.items():
+            propertized = cls._propertize_vals(values)
+
+            for prop, val in propertized.items():
                 try:
-                    setattr(instance, attr, val)
+                    setattr(instance, prop, val)
                 except BadValueError, e:
                     raise cls.InvalidValue(e)
+
+            if hasattr(instance, 'post_import_resource'):
+                instance.post_import_resource(values)
 
             instance.put()
             return cls(instance).as_dict(span_keys=span_keys)
@@ -198,7 +195,12 @@ class Resource(object):
 
     @classmethod
     def create(cls, values, span_keys=None):
-        instance = cls.model(**values)
+        if hasattr(cls.model, 'pre_import_resource'):
+            values = cls.model.pre_import_resource(values)
+        propertized = cls._propertize_vals(values)
+        instance = cls.model(**propertized)
+        if hasattr(instance, 'post_import_resource'):
+            instance.post_import_resource(values)
         instance.put()
         return cls(instance).as_dict(span_keys=span_keys)
 
@@ -219,10 +221,33 @@ class Resource(object):
 
     @classmethod
     def describe(cls, *args, **kwargs):
+        fields = {}
+
+        for prop_name, prop_type in cls._model_props().items():
+            prop = cls.model._properties[prop_name]
+            info = {
+                'type': prop_type,
+                'verbose_name': prop._verbose_name or prop_name,
+                'required': prop._required,
+                'indexed': prop._indexed,
+                'repeated': prop._repeated,
+            }
+
+            if prop._default:
+                info['default'] = prop._default
+
+            if prop._choices:
+                info['choices'] = list(prop._choices)
+
+            if prop._validator:
+                info['validator'] = prop._validator
+
+            fields[prop_name] = info
+
         return {
             'model': cls.model.__name__,
-            'fields': cls._model_props(),
-            'description': cls.model.__doc__.strip() if cls.model.__doc__ else ''
+            'fields': fields,
+            'description': cls.model.__doc__.strip() if cls.model.__doc__ else ''            
         }
 
 
