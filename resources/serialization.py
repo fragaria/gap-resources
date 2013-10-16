@@ -52,6 +52,20 @@ def _structured_prop_from_str(v, p):
 
     return ret
 
+def _local_structured_prop_to_str(value, property_class):
+    ret = {}
+    for prop_name, prop_class in value._properties.items():
+        ret[prop_name] = val_to_str(prop_class, getattr(value, prop_name))
+    return ret
+
+def _local_structured_prop_from_str(value, property_class):
+    raise NotImplementedError('This feature is not finished yet. Needs testing!!')
+    ret = {}
+    for prop_name, prop_class in property_class._modelclass._properties.items():
+        ret[prop_name] = str_to_val(prop_class, getattr(value, prop_name))
+    return ret
+
+
 
 val_from_str = partial(_val, {
     'IntegerProperty': partial(_v, lambda v, p: int(v)),
@@ -60,7 +74,7 @@ val_from_str = partial(_val, {
     'DateProperty': partial(_v, lambda v, p: date.fromtimestamp(int(v) / 1000)),
     'DateTimeProperty': partial(_v, lambda v, p: datetime.fromtimestamp(int(v) / 1000)),
     'KeyProperty': partial(_v, lambda v, p: ndb.Key(v['model'], v['id'])),
-    'StructuredProperty': partial(_v, _structured_prop_from_str)
+    'StructuredProperty': partial(_v, _structured_prop_from_str),
 })
 
 val_to_str = partial(_val, {
@@ -68,5 +82,6 @@ val_to_str = partial(_val, {
     'DateProperty': partial(_v, lambda v, p: int(time.mktime(v.timetuple())) * 1000),
     'DateTimeProperty': partial(_v, lambda v, p: int(time.mktime(v.timetuple())) * 1000),
     'KeyProperty': partial(_v, lambda v, p: {'model': v.kind(), 'id': v.id()}),
-    'StructuredProperty': partial(_v, _structured_prop_to_str)
+    'StructuredProperty': partial(_v, _structured_prop_to_str),
+    'LocalStructuredProperty': partial(_v, _local_structured_prop_to_str),
 })

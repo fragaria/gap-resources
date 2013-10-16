@@ -70,7 +70,10 @@ class Resource(object):
                     ret[prop] = ResourceClass(related).as_dict(include_class_info=include_class_info)
                     continue
 
-            ret[prop] = val_to_str(p, getattr(self.instance, prop))
+            if self.instance._properties[prop]._repeated:
+                ret[prop] = [val_to_str(p, v) for v in getattr(self.instance, prop)]
+            else:
+                ret[prop] = val_to_str(p, getattr(self.instance, prop))
 
         ret['id'] = self.instance.key.id() if self.instance.key is not None else None
 
