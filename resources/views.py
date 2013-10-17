@@ -98,7 +98,10 @@ class BaseResourceHandler(webapp2.RequestHandler):
     @classmethod
     def slugify(cls):
         '''converts CamelCase to camel-case'''
-        return slugify(cls.resource_class.model.__name__)
+        try:
+            return slugify(cls.resource_class.model.__name__)
+        except AttributeError, e:
+            raise AttributeError('%s (resource: %s)' % (e.message,cls.resource_class.__name__))
 
     @classmethod
     def uri_for(cls, request):
