@@ -1,3 +1,4 @@
+import logging
 import re
 import json
 import webapp2
@@ -23,10 +24,24 @@ class BaseResourceHandler(webapp2.RequestHandler):
         kwargs['span_keys'] = self._keys_to_span()
         return getattr(self.resource_class, method)(*args, **kwargs)
 
-    def dispatch(self):
+    def _dispatch(self):
         res = super(BaseResourceHandler, self).dispatch()
         self.response.headers['Content-Type'] = 'application/json'
         return res
+
+    def dispatch(self):
+        try:
+            return self._dispatch()
+        except Exception, e:
+            logging.exception(e)
+            self.response.clear()
+            self.response.status = 500
+            self.response.write(json.dumps( {
+                'error': {
+                    'code': 500,
+                    'message': 'Internal Server Error',
+                },
+            }))
 
     def describe(self):
         self.response.write(json.dumps(self._res('describe')))
