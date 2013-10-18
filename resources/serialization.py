@@ -6,8 +6,8 @@ from google.appengine.ext import ndb
 
 import config
 
-DATE_FORMAT = getattr(config, 'DATE_FORMAT', '%Y-%m-%d')
-DATETIME_FORMAT = getattr(config, 'DATETIME_FORMAT', '%Y-%m-%dT%H:%M:%S')
+DATE_FORMAT = getattr(config, 'RESOURCES_DATE_FORMAT', None)
+DATETIME_FORMAT = getattr(config, 'RESOURCES_DATETIME_FORMAT', None)
 
 
 def _v(if_not_none_func, v, prop):
@@ -72,22 +72,28 @@ def _local_structured_prop_from_str(value, property_class):
 
 
 def _date_from_str(value, property_class):
-    if isinstance(value, int):
+    if isinstance(value, int) or DATE_FORMAT is None:
         return date.fromtimestamp(int(value) / 1000)
     else:
         return datetime.strptime(value, DATE_FORMAT)
 
 def _date_to_str(value, property_class):
-    return value.strftime(DATE_FORMAT)
+    if DATE_FORMAT:
+        return value.strftime(DATE_FORMAT)
+    else:
+        return int(time.mktime(value.timetuple())) * 1000
 
 def _datetime_from_str(value, property_class):
-    if isinstance(value, int):
+    if isinstance(value, int) or DATETIME_FORMAT is None:
         return datetime.fromtimestamp(int(value) / 1000)
     else:
         return datetime.strptime(value, DATETIME_FORMAT)
 
 def _datetime_to_str(value, property_class):
-    return value.strftime(DATETIME_FORMAT)
+    if DATETIME_FORMAT:
+        return value.strftime(DATETIME_FORMAT)
+    else:
+        return int(time.mktime(value.timetuple())) * 1000
 
 val_from_str = partial(_val, {
     'IntegerProperty': partial(_v, lambda v, p: int(v)),
