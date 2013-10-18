@@ -72,13 +72,19 @@ def _local_structured_prop_from_str(value, property_class):
 
 
 def _date_from_str(value, property_class):
-    return datetime.strptime(value, DATE_FORMAT)
+    if isinstance(value, int):
+        return date.fromtimestamp(int(value) / 1000)
+    else:
+        return datetime.strptime(value, DATE_FORMAT)
 
 def _date_to_str(value, property_class):
     return value.strftime(DATE_FORMAT)
 
 def _datetime_from_str(value, property_class):
-    return datetime.strptime(value, DATETIME_FORMAT)
+    if isinstance(value, int):
+        return datetime.fromtimestamp(int(value) / 1000)
+    else:
+        return datetime.strptime(value, DATETIME_FORMAT)
 
 def _datetime_to_str(value, property_class):
     return value.strftime(DATETIME_FORMAT)
