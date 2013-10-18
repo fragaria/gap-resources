@@ -40,14 +40,17 @@ class Resource(object):
     @classmethod
     def _propertize_vals(cls, values):
         propertized = {}
-        for prop, val in values.items():
+        for prop_name, val in values.items():
             # Skip values which are not in model.
-            if prop in cls.model._properties:
+            if prop_name in cls.model._properties:
+                prop = cls.model._properties[prop_name]
+                if isinstance(prop, ndb.ComputedProperty):
+                    continue
                 try:
-                    if cls.model._properties[prop]._repeated:
-                        propertized[prop] = [val_from_str(cls.model._properties[prop], item) for item in val]
+                    if prop._repeated:
+                        propertized[prop_name] = [val_from_str(prop, item) for item in val]
                     else:
-                        propertized[prop] = val_from_str(cls.model._properties[prop], val)
+                        propertized[prop_name] = val_from_str(prop, val)
 
                 except ValueError, e:
                     raise cls.InvalidValue(e)
