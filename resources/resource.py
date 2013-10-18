@@ -44,7 +44,11 @@ class Resource(object):
             # Skip values which are not in model.
             if prop in cls.model._properties:
                 try:
-                    propertized[prop] = val_from_str(cls.model._properties[prop], val)
+                    if cls.model._properties[prop]._repeated:
+                        propertized[prop] = [val_from_str(cls.model._properties[prop], item) for item in val]
+                    else:
+                        propertized[prop] = val_from_str(cls.model._properties[prop], val)
+
                 except ValueError, e:
                     raise cls.InvalidValue(e)
         return propertized
@@ -177,11 +181,10 @@ class Resource(object):
         if instance is not None:
             propertized = cls._propertize_vals(values)
 
-            for prop, val in propertized.items():
-                try:
-                    setattr(instance, prop, val)
-                except BadValueError, e:
-                    raise cls.InvalidValue(e)
+            try:
+                cls._update_properties(instance, propertized)
+            except BadValueError, e:
+                raise cls.InvalidValue(e)
 
             instance.put()
             return cls(instance).as_dict(span_keys=span_keys)
@@ -189,11 +192,14 @@ class Resource(object):
         return None
 
     @classmethod
+    def _update_properties(cls, instance, values):
+        instance.populate(**values)
+
+    @classmethod
     def create(cls, values, span_keys=None):
         propertized = cls._propertize_vals(values)
-        instance = cls.model(**propertized)
-        if hasattr(instance, 'post_import_resource'):
-            instance.post_import_resource(values)
+        instance = cls.model()
+        cls._update_properties(instance, propertized)
         instance.put()
         return cls(instance).as_dict(span_keys=span_keys)
 

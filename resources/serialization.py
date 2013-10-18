@@ -24,7 +24,6 @@ def _val(map, prop, val):
 def _structured_prop_to_str(v, p):
     from resources import register
 
-    ret = []
     cls = p._modelclass
 
     if not register.is_registered(cls):
@@ -32,16 +31,16 @@ def _structured_prop_to_str(v, p):
                          'registered in resources registry.' % cls)
     if v:
         ValueResourceClass = register.get_handler(cls).resource_class
+        ret = ValueResourceClass(v).as_dict()
+    else:
+        ret = None
 
-        for v_ in v:
-            ret.append(ValueResourceClass(v_).as_dict())
     return ret
 
 
 def _structured_prop_from_str(v, p):
     from resources import register
 
-    ret = []
     cls = p._modelclass
 
     if not register.is_registered(cls):
@@ -50,10 +49,10 @@ def _structured_prop_from_str(v, p):
 
     if v:
         ValueResourceClass = register.get_handler(cls).resource_class
-
-        for v_ in v:
-            propertized = ValueResourceClass._propertize_vals(v_)
-            ret.append(ValueResourceClass.model(**propertized))
+        propertized = ValueResourceClass._propertize_vals(v)
+        ret = ValueResourceClass.model(**propertized)
+    else:
+        ret = None
 
     return ret
 
@@ -64,10 +63,10 @@ def _local_structured_prop_to_str(value, property_class):
     return ret
 
 def _local_structured_prop_from_str(value, property_class):
-    raise NotImplementedError('This feature is not finished yet. Needs testing!!')
+    # raise NotImplementedError('This feature is not finished yet. Needs testing!!')
     ret = {}
     for prop_name, prop_class in property_class._modelclass._properties.items():
-        ret[prop_name] = str_to_val(prop_class, getattr(value, prop_name))
+        ret[prop_name] = val_from_str(prop_class, value.get(prop_name))
     return ret
 
 
@@ -103,6 +102,7 @@ val_from_str = partial(_val, {
     'DateTimeProperty': partial(_v, _datetime_from_str),
     'KeyProperty': partial(_v, lambda v, p: ndb.Key(v['model'], v['id'])),
     'StructuredProperty': partial(_v, _structured_prop_from_str),
+    'LocalStructuredProperty': partial(_v, _local_structured_prop_from_str),
 })
 
 val_to_str = partial(_val, {
