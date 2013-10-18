@@ -33,13 +33,18 @@ class BaseResourceHandler(webapp2.RequestHandler):
         try:
             return self._dispatch()
         except Exception, e:
-            logging.exception(e)
             self.response.clear()
-            self.response.status = 500
+            logging.exception(e)
+            if isinstance(e, webapp2.HTTPException):
+                self.response.status = e.code
+                message = e.title
+            else:
+                self.response.status = 500
+                message = 'Internal Server Error'
             self.response.write(json.dumps( {
                 'error': {
-                    'code': 500,
-                    'message': 'Internal Server Error',
+                    'code': self.response.status,
+                    'message': message,
                 },
             }))
 
