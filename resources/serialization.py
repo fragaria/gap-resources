@@ -4,6 +4,11 @@ import time
 
 from google.appengine.ext import ndb
 
+import config
+
+DATE_FORMAT = getattr(config, 'DATE_FORMAT', '%Y-%m-%d')
+DATETIME_FORMAT = getattr(config, 'DATETIME_FORMAT', '%Y-%m-%dT%H:%M:%S')
+
 
 def _v(if_not_none_func, v, prop):
     if v is None:
@@ -66,21 +71,32 @@ def _local_structured_prop_from_str(value, property_class):
     return ret
 
 
+def _date_from_str(value, property_class):
+    return datetime.strptime(value, DATE_FORMAT)
+
+def _date_to_str(value, property_class):
+    return value.strftime(DATE_FORMAT)
+
+def _datetime_from_str(value, property_class):
+    return datetime.strptime(value, DATETIME_FORMAT)
+
+def _datetime_to_str(value, property_class):
+    return value.strftime(DATETIME_FORMAT)
 
 val_from_str = partial(_val, {
     'IntegerProperty': partial(_v, lambda v, p: int(v)),
     'FloatProperty': partial(_v, lambda v, p: float(v)),
     'BooleanProperty': partial(_v, lambda v, p: v == 'true'),
-    'DateProperty': partial(_v, lambda v, p: date.fromtimestamp(int(v) / 1000)),
-    'DateTimeProperty': partial(_v, lambda v, p: datetime.fromtimestamp(int(v) / 1000)),
+    'DateProperty': partial(_v, _date_from_str),
+    'DateTimeProperty': partial(_v, _datetime_from_str),
     'KeyProperty': partial(_v, lambda v, p: ndb.Key(v['model'], v['id'])),
     'StructuredProperty': partial(_v, _structured_prop_from_str),
 })
 
 val_to_str = partial(_val, {
     'BooleanProperty': partial(_v, lambda v, p: 'true' if v else 'false'),
-    'DateProperty': partial(_v, lambda v, p: int(time.mktime(v.timetuple())) * 1000),
-    'DateTimeProperty': partial(_v, lambda v, p: int(time.mktime(v.timetuple())) * 1000),
+    'DateProperty': partial(_v, _date_to_str),
+    'DateTimeProperty': partial(_v, _datetime_to_str),
     'KeyProperty': partial(_v, lambda v, p: {'model': v.kind(), 'id': v.id()}),
     'StructuredProperty': partial(_v, _structured_prop_to_str),
     'LocalStructuredProperty': partial(_v, _local_structured_prop_to_str),
