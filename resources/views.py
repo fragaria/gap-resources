@@ -1,6 +1,7 @@
 import logging
 import re
 import json
+from gap.utils.json_utils import dumps
 import webapp2
 
 from gap.utils.decorators import as_view
@@ -41,7 +42,7 @@ class BaseResourceHandler(webapp2.RequestHandler):
             else:
                 self.response.status = 500
                 message = 'Internal Server Error'
-            self.response.write(json.dumps( {
+            self.response.write(dumps( {
                 'error': {
                     'code': self.response.status,
                     'message': message,
@@ -49,7 +50,7 @@ class BaseResourceHandler(webapp2.RequestHandler):
             }))
 
     def describe(self):
-        self.response.write(json.dumps(self._res('describe')))
+        self.response.write(dumps(self._res('describe')))
 
     def options(self, id=None):
         return
@@ -81,7 +82,7 @@ class BaseResourceHandler(webapp2.RequestHandler):
             else:
                 ret = self._res('list')
 
-        self.response.write(json.dumps(ret))
+        self.response.write(dumps(ret))
 
     def post(self, id=None):
         if id == '':
@@ -103,7 +104,7 @@ class BaseResourceHandler(webapp2.RequestHandler):
             self.response.write(unicode(e))
             return
 
-        self.response.write(json.dumps(ret))
+        self.response.write(dumps(ret))
 
     def delete(self, id=None):
         if id is None:
@@ -140,7 +141,7 @@ class BaseResourceHandler(webapp2.RequestHandler):
 @as_view
 def model_list(request, response):
     from resources import register
-    response.write(json.dumps([
+    response.write(dumps([
         {
             'model': model_class.__name__,
             'full_module': '%s.%s' % (model_class.__module__, model_class.__name__),
