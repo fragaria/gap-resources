@@ -103,7 +103,7 @@ class Resource(object):
 
     @classmethod
     def get(cls, id, span_keys=None):
-        id = cls.parse_id(id)
+        id = cls._parse_id(id)
         try:
             instance = cls.model.get_by_id(id)
         except BadRequestError:
@@ -177,7 +177,7 @@ class Resource(object):
 
     @classmethod
     def update(cls, id, values, span_keys=None):
-        id = cls.parse_id(id)
+        id = cls._parse_id(id)
         try:
             instance = cls.model.get_by_id(id)
         except BadRequestError:
@@ -210,7 +210,7 @@ class Resource(object):
 
     @classmethod
     def delete(cls, id, *args, **kwargs):
-        id = cls.parse_id(id)
+        id = cls._parse_id(id)
         instance = cls.model.get_by_id(id)
 
         if instance is not None:
