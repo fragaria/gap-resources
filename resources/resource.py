@@ -94,11 +94,6 @@ class Resource(object):
     @classmethod
     def get(cls, id, span_keys=None):
         try:
-            id = int(id)
-        except ValueError:
-            pass
-
-        try:
             instance = cls.model.get_by_id(id)
         except BadRequestError:
             instance = None
@@ -172,11 +167,6 @@ class Resource(object):
     @classmethod
     def update(cls, id, values, span_keys=None):
         try:
-            id = int(id)
-        except ValueError:
-            pass
-
-        try:
             instance = cls.model.get_by_id(id)
         except BadRequestError:
             instance = None
@@ -208,11 +198,6 @@ class Resource(object):
 
     @classmethod
     def delete(cls, id, *args, **kwargs):
-        try:
-            id = int(id)
-        except ValueError:
-            pass
-
         instance = cls.model.get_by_id(id)
 
         if instance is not None:
