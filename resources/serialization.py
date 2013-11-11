@@ -71,7 +71,7 @@ def _local_structured_prop_from_str(value, property_class):
 
 
 def _date_from_str(value, property_class):
-    if isinstance(value, int) or DATE_FORMAT is None:
+    if isinstance(value, (int, float)) or DATE_FORMAT is None:
         return date.fromtimestamp(int(value) / 1000)
     else:
         return datetime.strptime(value, DATE_FORMAT)
