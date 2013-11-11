@@ -92,7 +92,18 @@ class Resource(object):
         return ret
 
     @classmethod
+    def _parse_id(cls, id):
+        if id.isdigit():
+            try:
+                return int(id)
+            except ValueError:
+                raise BadRequestError('Invalid id %r' % id)
+        else:
+            return id
+
+    @classmethod
     def get(cls, id, span_keys=None):
+        id = cls.parse_id(id)
         try:
             instance = cls.model.get_by_id(id)
         except BadRequestError:
@@ -166,6 +177,7 @@ class Resource(object):
 
     @classmethod
     def update(cls, id, values, span_keys=None):
+        id = cls.parse_id(id)
         try:
             instance = cls.model.get_by_id(id)
         except BadRequestError:
@@ -198,6 +210,7 @@ class Resource(object):
 
     @classmethod
     def delete(cls, id, *args, **kwargs):
+        id = cls.parse_id(id)
         instance = cls.model.get_by_id(id)
 
         if instance is not None:
