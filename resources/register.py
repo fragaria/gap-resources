@@ -30,7 +30,8 @@ class ModelRegistry(object):
 
     def register(self, cls, handler_or_resource=None):
         if cls in [c for c, h in self._models]:
-            raise self.AlreadyRegistered('Cannot register %r, already present in registry.' % cls.__name__)
+            # raise self.AlreadyRegistered('Cannot register %r, already present in registry.' % cls.__name__)
+            return
 
         handler = None
 
