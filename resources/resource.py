@@ -164,7 +164,7 @@ class Resource(object):
 
     @classmethod
     def query(cls, ordering=None, span_keys=None, **filters):
-        query = cls.model.query()
+        query = cls.queryset()
 
         for prop, val in filters.items():
             try:
