@@ -1,3 +1,4 @@
+import logging
 from datetime import date, datetime
 from functools import partial
 import time
@@ -74,7 +75,10 @@ def _date_from_str(value, property_class):
     if isinstance(value, (int, float)) or DATE_FORMAT is None:
         return date.fromtimestamp(int(value) / 1000)
     else:
-        return datetime.strptime(value, DATE_FORMAT)
+        try:
+            return datetime.strptime(value, DATE_FORMAT).date()
+        except ValueError, e:
+            raise ValueError('Expected format %r but got %r (%s)' % (DATE_FORMAT, value, property_class))
 
 def _date_to_str(value, property_class):
     if DATE_FORMAT:
@@ -83,8 +87,8 @@ def _date_to_str(value, property_class):
         return int(time.mktime(value.timetuple())) * 1000
 
 def _datetime_from_str(value, property_class):
-    if isinstance(value, int) or DATETIME_FORMAT is None:
-        return datetime.fromtimestamp(int(value) / 1000)
+    if isinstance(value, (int, float)) or DATETIME_FORMAT is None:
+        return datetime.fromtimestamp(float(value) / 1000.0)
     else:
         return datetime.strptime(value, DATETIME_FORMAT)
 
@@ -92,7 +96,7 @@ def _datetime_to_str(value, property_class):
     if DATETIME_FORMAT:
         return value.strftime(DATETIME_FORMAT)
     else:
-        return int(time.mktime(value.timetuple())) * 1000
+        return int(time.mktime(value.timetuple())) * 1000 + (value.microsecond / 1000.0)
 
 val_from_str = partial(_val, {
     'IntegerProperty': partial(_v, lambda v, p: int(v)),
